@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MASTER_ADMIN
+  ADMIN
+  EMPLOYEE
+}
+
+enum MovementType {
+  ENTRADA
+  SALIDA
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  password          String
+  name              String
+  role              Role     @default(EMPLOYEE)
+  roleChangeRequest Boolean @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  movements         StockMovement[]
+
+  @@map("users")
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  contact   String?
+  email     String?
+  phone     String?
+  address   String?
+  website   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products  Product[]
+
+  @@map("suppliers")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products  ProductCategory[]
+
+  @@map("categories")
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  sku           String   @unique
+  name          String
+  description  String?
+  price         Float    @default(0)
+  cost          Float    @default(0)
+  stock         Int      @default(0)
+  minStock      Int      @default(0)
+  imageUrl      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  supplierId    String?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  categories    ProductCategory[]
+  movements     StockMovement[]
+
+  @@map("products")
+}
+
+model ProductCategory {
+  id         String   @id @default(cuid())
+  productId  String
+  categoryId String
+
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([productId, categoryId])
+  @@map("product_categories")
+}
+
+model StockMovement {
+  id          String        @id @default(cuid())
+  type        MovementType
+  quantity    Int
+  reason      String?
+  stockBefore Int
+  stockAfter  Int
+  createdAt   DateTime     @default(now())
+
+  productId   String
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+
+  @@map("stock_movements")
+}
